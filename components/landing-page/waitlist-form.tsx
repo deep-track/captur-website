@@ -1,51 +1,72 @@
 'use client'
 
-import { FormEvent, useState, useEffect } from 'react'
+import { Formik, Form, Field, ErrorMessage } from 'formik'
+import * as Yup from 'yup'
 import { Input } from '@/components/ui/input'
 import { Button } from '../ui/button'
 import { toast } from 'sonner'
- 
+
 export default function WaitlistForm() {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: ''
+  // Validation schema using Yup
+  const validationSchema = Yup.object({
+    name: Yup.string().trim().required('Name is required'),
+    phoneNumber: Yup.string()
+      .matches(
+        /^\+\d{10,15}$/,
+        'Phone number must start with +(country code) and include 10-15 digits e.g +2541234567890'
+      )
+      .required('Phone number is required'),
+    email: Yup.string()
+      .matches(
+        /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+        'Invalid email address'
+      )
+      // .matches(
+      //   /^[a-zA-Z0-9._%+-]+@yourcompany\.com$/,
+      //   'Email must be a corporate email address'
+      // )
+      .required('Email is required'),
+    company: Yup.string().trim().required('Company is required'),
+    date: Yup.date().required('Date is required'),
+    time: Yup.string()
+      .matches(
+        /^([0-1]\d|2[0-3]):([0-5]\d)$/,
+        'Time must be in 24-hour format (HH:MM)'
+      )
+      .required('Time is required'),
   })
 
-  const [isValid, setIsValid] = useState(false)
-
-  // Email validation regex
-  useEffect(() => {
-    // Email validation regex
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    // Check if both fields are filled and email is valid
-    const isEmailValid = emailRegex.test(formData.email)
-    setIsValid(formData.name.trim() !== '' && isEmailValid)
-  }, [formData])
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }))
+  // Initial form values
+  const initialValues = {
+    name: '',
+    phoneNumber: '',
+    email: '',
+    company: '',
+    date: '',
+    time: '',
   }
 
-  async function onSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+  // Form submission handler
+  const handleSubmit = async (
+    values: {
+      name: string
+      phoneNumber: string
+      email: string
+      company: string
+      date: string
+      time: string
+    },
+    { resetForm }: { resetForm: () => void }
+  ) => {
     try {
-      const formData = new FormData(event.currentTarget)
-    await fetch('/api/add-to-waitlist', {
+      await fetch('/api/add-to-google-sheet', {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(values),
       })
 
-      setFormData({
-        name: '',
-        email: ''
-      })
-      
       toast.success('Hooray! You are on our Waitlist')
- 
+      resetForm()
     } catch (error) {
       console.error(error)
       toast.error('Error adding to Waitlist')
@@ -53,30 +74,117 @@ export default function WaitlistForm() {
   }
 
   return (
-    <form className='flex flex-col space-y-4' onSubmit={onSubmit}>
-      <Input
-        type="text"
-        name="name"
-        className='text-black'
-        placeholder='Enter your name'
-        value={formData.name}
-        onChange={handleInputChange}
-      />
-      <Input
-        className='text-black'
-        type="email"
-        name="email"
-        placeholder='Enter your email'
-        value={formData.email}
-        onChange={handleInputChange}
-      />
-      <Button
-        type="submit"
-        className="border p-2 rounded-md"
-        disabled={!isValid}
-      >
-        Submit
-      </Button>
-    </form>
+    <Formik
+      initialValues={initialValues}
+      validationSchema={validationSchema}
+      onSubmit={handleSubmit}
+    >
+      {({ isSubmitting, isValid }) => (
+        <Form className="flex flex-col space-y-4">
+          {/* Name Field */}
+          <div>
+            <Field
+              type="text"
+              name="name"
+              as={Input}
+              className="text-black"
+              placeholder="Enter your name"
+            />
+            <ErrorMessage
+              name="name"
+              component="div"
+              className="text-red-500 text-sm mt-1"
+            />
+          </div>
+
+          {/* Phone Number Field */}
+          <div>
+            <Field
+              type="text"
+              name="phoneNumber"
+              as={Input}
+              className="text-black"
+              placeholder="Enter your phone number"
+            />
+            <ErrorMessage
+              name="phoneNumber"
+              component="div"
+              className="text-red-500 text-sm mt-1"
+            />
+          </div>
+
+          {/* Email Field */}
+          <div>
+            <Field
+              type="email"
+              name="email"
+              as={Input}
+              className="text-black"
+              placeholder="Enter your email"
+            />
+            <ErrorMessage
+              name="email"
+              component="div"
+              className="text-red-500 text-sm mt-1"
+            />
+          </div>
+
+          {/* Company Field */}
+          <div>
+            <Field
+              type="text"
+              name="company"
+              as={Input}
+              className="text-black"
+              placeholder="Enter your company"
+            />
+            <ErrorMessage
+              name="company"
+              component="div"
+              className="text-red-500 text-sm mt-1"
+            />
+          </div>
+
+          {/* Date Field */}
+          <div>
+            <Field
+              type="date"
+              name="date"
+              as={Input}
+              className="text-black"
+            />
+            <ErrorMessage
+              name="date"
+              component="div"
+              className="text-red-500 text-sm mt-1"
+            />
+          </div>
+
+          {/* Time Field */}
+          <div>
+            <Field
+              type="time"
+              name="time"
+              as={Input}
+              className="text-black"
+            />
+            <ErrorMessage
+              name="time"
+              component="div"
+              className="text-red-500 text-sm mt-1"
+            />
+          </div>
+
+          {/* Submit Button */}
+          <Button
+            type="submit"
+            className="border p-2 rounded-md"
+            disabled={isSubmitting || !isValid}
+          >
+            {isSubmitting ? 'Submitting...' : 'Submit'}
+          </Button>
+        </Form>
+      )}
+    </Formik>
   )
 }
